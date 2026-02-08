@@ -509,26 +509,29 @@
         <div class="liquid-blob w-80 h-80 bg-sage/20 top-1/3 right-1/4" style="animation-delay: -5s;"></div>
         <div class="liquid-blob w-72 h-72 bg-mist-blue/20 bottom-1/4 left-1/3" style="animation-delay: -10s;"></div>
         
-        <!-- Navigation -->
-        <nav class="fixed top-0 left-0 w-full z-50 px-6 py-6 hidden md:block">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
-                <a href="#" class="text-apple-dark font-bold text-lg tracking-tight magnetic-btn" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
-                    {{ profileData.initials }}
-                </a>
-                <div class="hidden md:flex gap-8 items-center">
-                    <a v-for="item in navItems" :key="item.id" 
-                       :href="item.href" 
-                       class="text-apple-dark/80 hover:text-apple-dark text-sm font-medium link-underline magnetic-btn transition-colors"
-                       @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
-                        {{ currentLang === 'zh' ? item.label : item.labelEn }}
-                    </a>
-                    <!-- Language Toggle -->
-                    <div class="lang-toggle" :class="{ active: currentLang === 'en' }" @click="toggleLanguage">
-                        <div class="lang-toggle-knob">{{ currentLang === 'zh' ? '中' : 'EN' }}</div>
-                    </div>
-                </div>
-            </div>
-        </nav>
+<!-- Navigation -->
+<nav class="fixed top-0 left-0 w-full z-50 px-6 py-6">
+  <div class="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap justify-between items-center gap-y-3">
+    <a href="#"
+       class="text-apple-dark font-bold text-lg tracking-tight magnetic-btn"
+       @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
+      {{ profileData.initials }}
+    </a>
+    <!-- Nav items + Language Toggle (now visible on mobile) -->
+    <div class="w-full md:w-auto flex flex-wrap md:flex-nowrap gap-x-6 gap-y-2 md:gap-8 items-center justify-start md:justify-end">
+      <a v-for="item in navItems" :key="item.id"
+         :href="item.href"
+         class="text-apple-dark/80 hover:text-apple-dark text-[12px] md:text-sm font-medium link-underline magnetic-btn transition-colors"
+         @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
+        {{ currentLang === 'zh' ? item.label : item.labelEn }}
+      </a>
+      <!-- Language Toggle -->
+      <div class="lang-toggle" :class="{ active: currentLang === 'en' }" @click="toggleLanguage">
+        <div class="lang-toggle-knob">{{ currentLang === 'zh' ? '中' : 'EN' }}</div>
+      </div>
+    </div>
+  </div>
+</nav>
         
         <!-- Hero Section -->
         <section id="hero" class="min-h-screen flex items-center justify-center relative overflow-hidden px-6">
