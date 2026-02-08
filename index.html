@@ -542,25 +542,24 @@ section[id] { scroll-margin-top: calc(var(--nav-h) + 14px); }
         
 <!-- Navigation -->
 <nav class="nav-bar fixed top-0 left-0 w-full z-50">
-  <div class="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center gap-3">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center">
+    <!-- Left: Logo -->
     <a href="#"
        class="shrink-0 text-apple-dark font-bold text-lg tracking-tight magnetic-btn"
        @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
       {{ profileData.initials }}
     </a>
-    <!-- Scrollable (only inside nav), NEVER wrap -->
-    <div class="nav-links-scroll flex-1 overflow-x-auto">
-      <div class="flex flex-nowrap items-center gap-4 md:gap-8 min-w-max pr-2">
+    <!-- Right: Nav + Lang (ALWAYS right aligned) -->
+    <div class="ml-auto flex items-center gap-3 md:gap-6 nav-right">
+      <div class="flex items-center gap-3 md:gap-8 nav-links">
         <a v-for="item in navItems" :key="item.id"
            :href="item.href"
-           class="whitespace-nowrap text-apple-dark/80 hover:text-apple-dark text-[12px] md:text-sm font-medium link-underline magnetic-btn transition-colors"
+           class="nav-link text-apple-dark/80 hover:text-apple-dark font-medium link-underline magnetic-btn transition-colors"
            @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
-          {{ currentLang === 'zh' ? item.label : item.labelEn }}
+          {{ currentLang === 'zh' ? item.label : shortLabel(item.labelEn) }}
         </a>
       </div>
-    </div>
-    <!-- Language Toggle pinned right, NEVER drops to next line -->
-    <div class="shrink-0">
+      <!-- Language Toggle -->
       <div class="lang-toggle" :class="{ active: currentLang === 'en' }" @click="toggleLanguage">
         <div class="lang-toggle-knob">{{ currentLang === 'zh' ? '中' : 'EN' }}</div>
       </div>
@@ -1154,12 +1153,23 @@ section[id] { scroll-margin-top: calc(var(--nav-h) + 14px); }
                 };
 
                 // Helpers: pick the right field per language (e.g., name/nameEn)
-                const langField = (obj, key) => {
-                    if (!obj) return '';
-                    if (currentLang.value === 'zh') return obj[key] ?? '';
-                    const enKey = key + 'En';
-                    return (obj[enKey] ?? obj[key] ?? '');
-                };
+	                const langField = (obj, key) => {
+	                    if (!obj) return '';
+	                    if (currentLang.value === 'zh') return obj[key] ?? '';
+	                    const enKey = key + 'En';
+	                    return (obj[enKey] ?? obj[key] ?? '');
+	                };
+
+	                const shortLabel = (labelEn) => {
+	                    const map = {
+	                        'About': 'About',
+	                        'Experience': 'Exp.',
+	                        'Skills': 'Skills',
+	                        'Hobbies': 'Life',
+	                        'Contact': 'Contact'
+	                    };
+	                    return map[labelEn] || labelEn;
+	                };
 
                 // Music (user-triggered; add your own licensed audio file at assets/audio/bgm.mp3)
                 const isMusicPlaying = ref(false);
@@ -1844,6 +1854,7 @@ section[id] { scroll-margin-top: calc(var(--nav-h) + 14px); }
                     openPreview,
                     closePreview,
                     langField,
+                    shortLabel,
                     toggleMusic,
                     isMusicPlaying,
                     isMusicAvailable,
