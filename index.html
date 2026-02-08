@@ -394,7 +394,68 @@
             font-size: 14px;
             pointer-events: none;
         }
-    </style>
+    
+        /* Prevent horizontal page panning on mobile (allow vertical only) */
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+        @media (max-width: 767px) {
+            body { 
+                touch-action: pan-y;
+            }
+        }
+        /* Allow the 3D life-photos sphere to capture horizontal drag */
+        #sphere-container {
+            touch-action: none;
+        }
+
+        /* Draggable music FAB */
+        .music-fab {
+            position: fixed;
+            z-index: 70;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1D1D1F;
+            right: 14px;
+            top: 55%;
+            transform: translateY(-50%);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .music-fab-icon {
+            width: 20px;
+            height: 20px;
+        }
+        .music-fab-indicator {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+        }
+        .music-fab-indicator svg {
+            width: 14px;
+            height: 14px;
+        }
+        .music-fab-slash {
+            position: absolute;
+            width: 28px;
+            height: 2px;
+            background: currentColor;
+            transform: rotate(-35deg);
+            opacity: 0.75;
+        }
+
+</style>
 </head>
 <body>
     <div id="app">
@@ -405,18 +466,31 @@
         <!-- Noise Overlay -->
         <div class="noise-overlay"></div>
 
-        <!-- Music Toggle -->
-        <button @click="toggleMusic"
-                class="fixed bottom-6 right-6 z-[60] w-12 h-12 md:w-14 md:h-14 glass-strong border border-black/10 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                :title="currentLang === 'zh' ? (isMusicPlaying ? '暂停音乐' : '播放音乐') : (isMusicPlaying ? 'Pause music' : 'Play music')">
-            <!-- Play Icon -->
-            <svg v-if="!isMusicPlaying" class="w-5 h-5 md:w-6 md:h-6 text-apple-dark" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 5v14l11-7z"></path>
+        <!-- Music Toggle (Draggable Side FAB) -->
+        <button id="music-fab"
+                class="music-fab glass-strong border border-black/10 rounded-full shadow-lg transition-transform active:scale-95"
+                :class="{ playing: isMusicPlaying }"
+                :style="musicFabStyle"
+                @pointerdown.prevent="onMusicFabPointerDown"
+                :title="currentLang === 'zh' ? (isMusicPlaying ? '暂停音乐' : '播放音乐') : (isMusicPlaying ? 'Pause music' : 'Play music')"
+                aria-label="Music toggle">
+            <!-- Music Note Icon -->
+            <svg class="music-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 3v10.55A4 4 0 1 0 14 17V7h6V3h-8z"/>
             </svg>
-            <!-- Pause Icon -->
-            <svg v-else class="w-5 h-5 md:w-6 md:h-6 text-apple-dark" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 5h4v14H6zm8 0h4v14h-4z"></path>
-            </svg>
+
+            <!-- Slash when muted/paused -->
+            <span class="music-fab-slash" v-if="!isMusicPlaying" aria-hidden="true"></span>
+
+            <!-- Tiny play/pause indicator -->
+            <span class="music-fab-indicator" aria-hidden="true">
+                <svg v-if="!isMusicPlaying" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M8 5v14l11-7z"></path>
+                </svg>
+                <svg v-else viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"></path>
+                </svg>
+            </span>
         </button>
 
         
@@ -436,7 +510,7 @@
         <div class="liquid-blob w-72 h-72 bg-mist-blue/20 bottom-1/4 left-1/3" style="animation-delay: -10s;"></div>
         
         <!-- Navigation -->
-        <nav class="fixed top-0 left-0 w-full z-50 px-6 py-6">
+        <nav class="fixed top-0 left-0 w-full z-50 px-6 py-6 hidden md:block">
             <div class="max-w-7xl mx-auto flex justify-between items-center">
                 <a href="#" class="text-apple-dark font-bold text-lg tracking-tight magnetic-btn" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
                     {{ profileData.initials }}
@@ -564,7 +638,7 @@
                             <h4 class="text-xl font-bold text-apple-dark mb-1">{{ langField(profileData.education, 'school') }}</h4>
                             <p class="text-apple-text">{{ t('degree') }} · {{ langField(profileData.education, 'major') }} · {{ langField(profileData.education, 'honor') }}</p>
                         </div>
-                        <div class="text-right">
+                        <div class="edu-meta w-full md:w-auto flex items-center justify-between md:block mt-4 md:mt-0 md:text-right">
                             <p class="text-apple-text/60 text-sm">{{ profileData.education.period }}</p>
                             <p class="text-apple-blue text-sm font-medium">QS {{ profileData.education.ranking }}</p>
                         </div>
@@ -1049,14 +1123,93 @@
                     return (obj[enKey] ?? obj[key] ?? '');
                 };
 
-                // Music (user-triggered; add your own licensed audio file at assets/audio/river-flows-in-you.mp3)
+                // Music (user-triggered; add your own licensed audio file at assets/audio/bgm.mp3)
                 const isMusicPlaying = ref(false);
                 const isMusicAvailable = ref(true);
                 let bgmAudio = null;
 
+                // Draggable music FAB position
+                const musicFabPos = ref({ x: null, y: null });
+                const musicFabDragging = ref(false);
+                let musicFabPointerId = null;
+                let musicFabStart = { x: 0, y: 0, left: 0, top: 0 };
+                const musicFabStyle = computed(() => {
+                    if (musicFabPos.value.x == null || musicFabPos.value.y == null) return {};
+                    return {
+                        left: musicFabPos.value.x + 'px',
+                        top: musicFabPos.value.y + 'px',
+                        right: 'auto',
+                        bottom: 'auto',
+                        transform: 'none'
+                    };
+                });
+
+                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+                const setInitialMusicFabPos = () => {
+                    try {
+                        const saved = localStorage.getItem('musicFabPos');
+                        if (saved) {
+                            const p = JSON.parse(saved);
+                            if (typeof p.x === 'number' && typeof p.y === 'number') {
+                                musicFabPos.value = { x: p.x, y: p.y };
+                                return;
+                            }
+                        }
+                    } catch (_) {}
+                    // Default: middle-right
+                    const btnSize = 44;
+                    musicFabPos.value = {
+                        x: Math.max(8, window.innerWidth - btnSize - 14),
+                        y: Math.round(window.innerHeight * 0.55 - btnSize / 2)
+                    };
+                };
+
+                const persistMusicFabPos = () => {
+                    try { localStorage.setItem('musicFabPos', JSON.stringify(musicFabPos.value)); } catch (_) {}
+                };
+
+                const onMusicFabPointerDown = (e) => {
+                    // Track movement to distinguish click vs drag
+                    musicFabDragging.value = true;
+                    musicFabPointerId = e.pointerId;
+                    musicFabStart.x = e.clientX;
+                    musicFabStart.y = e.clientY;
+                    musicFabStart.left = (musicFabPos.value.x ?? 0);
+                    musicFabStart.top = (musicFabPos.value.y ?? 0);
+
+                    const onMove = (ev) => {
+                        if (!musicFabDragging.value || ev.pointerId !== musicFabPointerId) return;
+                        const dx = ev.clientX - musicFabStart.x;
+                        const dy = ev.clientY - musicFabStart.y;
+                        const btnSize = 44;
+                        const nx = clamp(musicFabStart.left + dx, 8, window.innerWidth - btnSize - 8);
+                        const ny = clamp(musicFabStart.top + dy, 8, window.innerHeight - btnSize - 8);
+                        musicFabPos.value = { x: nx, y: ny };
+                    };
+
+                    const onUp = async (ev) => {
+                        if (ev.pointerId !== musicFabPointerId) return;
+                        document.removeEventListener('pointermove', onMove);
+                        document.removeEventListener('pointerup', onUp);
+                        const moved = Math.hypot(ev.clientX - musicFabStart.x, ev.clientY - musicFabStart.y);
+                        musicFabDragging.value = false;
+                        musicFabPointerId = null;
+                        persistMusicFabPos();
+
+                        // Treat as a click if barely moved
+                        if (moved < 6) {
+                            await toggleMusic();
+                        }
+                    };
+
+                    document.addEventListener('pointermove', onMove, { passive: true });
+                    document.addEventListener('pointerup', onUp, { passive: true, once: true });
+                };
+
                 const initMusic = () => {
                     try {
-                        bgmAudio = new Audio('assets/audio/river-flows-in-you.mp3');
+                        bgmAudio = new Audio('assets/audio/bgm.mp3');
                         bgmAudio.loop = true;
                         bgmAudio.volume = 0.35;
                         bgmAudio.addEventListener('error', () => {
@@ -1070,8 +1223,8 @@
                 const toggleMusic = async () => {
                     if (!bgmAudio || !isMusicAvailable.value) {
                         alert(currentLang.value === 'zh'
-                            ? '未找到音乐文件：请将你拥有版权/授权的音频文件放到 assets/audio/river-flows-in-you.mp3'
-                            : 'Music file not found. Please add a licensed audio file at assets/audio/river-flows-in-you.mp3');
+                            ? '未找到音乐文件：请将你拥有版权/授权的音频文件放到 assets/audio/bgm.mp3'
+                            : 'Music file not found. Please add a licensed audio file at assets/audio/bgm.mp3');
                         return;
                     }
                     try {
@@ -1596,6 +1749,41 @@
                 };
 
                 onMounted(() => {
+                    // Initialize draggable music FAB
+                    setInitialMusicFabPos();
+                    window.addEventListener('resize', () => {
+                        // Keep FAB within bounds on resize/orientation change
+                        const btnSize = 44;
+                        if (musicFabPos.value.x != null && musicFabPos.value.y != null) {
+                            musicFabPos.value = {
+                                x: clamp(musicFabPos.value.x, 8, window.innerWidth - btnSize - 8),
+                                y: clamp(musicFabPos.value.y, 8, window.innerHeight - btnSize - 8)
+                            };
+                            persistMusicFabPos();
+                        }
+                    }, { passive: true });
+
+                    // Prevent horizontal page panning on mobile (but keep the 3D sphere draggable)
+                    let pageTouchStart = null;
+                    const onPageTouchStart = (ev) => {
+                        if (!ev.touches || ev.touches.length !== 1) return;
+                        pageTouchStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+                    };
+                    const onPageTouchMove = (ev) => {
+                        if (!pageTouchStart || !ev.touches || ev.touches.length !== 1) return;
+                        const dx = ev.touches[0].clientX - pageTouchStart.x;
+                        const dy = ev.touches[0].clientY - pageTouchStart.y;
+                        // If user is swiping more horizontally than vertically, block it (except inside sphere)
+                        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+                            const t = ev.target;
+                            if (t && t.closest && t.closest('#sphere-container')) return;
+                            ev.preventDefault();
+                        }
+                    };
+                    document.addEventListener('touchstart', onPageTouchStart, { passive: true });
+                    document.addEventListener('touchmove', onPageTouchMove, { passive: false });
+
+
                     initCursor();
                     initAnimations();
                     initSmoothScroll();
@@ -1620,7 +1808,9 @@
                     langField,
                     toggleMusic,
                     isMusicPlaying,
-                    isMusicAvailable
+                    isMusicAvailable,
+                    musicFabStyle,
+                    onMusicFabPointerDown
                 };
             }}).mount('#app');
     </script>
